@@ -1,0 +1,2379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Educational LLM Architecture Visualization</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background-color: #151a25;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      color: #e0e0e0;
+    }
+    
+    canvas {
+      display: block;
+    }
+    
+    .controls {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      z-index: 10;
+    }
+    
+    button {
+      padding: 8px 15px;
+      background-color: rgba(60, 100, 170, 0.2);
+      color: rgb(220, 240, 255);
+      border: 1px solid rgba(60, 100, 170, 0.5);
+      border-radius: 4px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    
+    button:hover {
+      background-color: rgba(60, 100, 170, 0.4);
+      box-shadow: 0 0 10px rgba(80, 120, 200, 0.6);
+    }
+    
+    #infoPanel {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 20%;
+      height: 100%;
+      padding: 15px;
+      background-color: rgba(21, 26, 37, 0.9);
+      border-right: 1px solid rgba(60, 100, 170, 0.3);
+      font-size: 13px;
+      line-height: 1.4;
+      transition: all 0.3s ease;
+      overflow-y: auto;
+      box-sizing: border-box;
+    }
+    
+    #phaseName {
+      font-weight: bold;
+      margin-bottom: 8px;
+      color: #fff;
+      font-size: 16px;
+    }
+    
+    #phaseDescription {
+      margin-bottom: 15px;
+      font-size: 12px;
+    }
+    
+    .component-info {
+      background-color: rgba(40, 50, 70, 0.7);
+      border-radius: 4px;
+      padding: 10px;
+      margin-top: 10px;
+      border-left: 3px solid rgba(80, 140, 240, 0.8);
+      font-size: 12px;
+    }
+    
+    .info-title {
+      font-weight: bold;
+      margin-bottom: 5px;
+      color: #a0c8ff;
+    }
+    
+    .control-panel {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 20%;
+      padding: 15px;
+      background-color: rgba(21, 26, 37, 0.9);
+      border-left: 1px solid rgba(60, 100, 170, 0.3);
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      box-sizing: border-box;
+    }
+    
+    .control-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    
+    .slider-container {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      width: 100%;
+    }
+    
+    .slider-label {
+      font-size: 12px;
+      color: #a0c8ff;
+    }
+
+    .toggle-button {
+      padding: 8px 12px;
+      font-size: 12px;
+      width: 48%;
+    }
+    
+    .tooltip {
+      position: absolute;
+      padding: 8px 12px;
+      background-color: rgba(0, 0, 0, 0.8);
+      border: 1px solid rgba(100, 160, 255, 0.5);
+      border-radius: 4px;
+      font-size: 12px;
+      color: white;
+      pointer-events: none;
+      z-index: 100;
+      max-width: 250px;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+    
+    .layer-detail {
+      position: absolute;
+      padding: 10px;
+      background-color: rgba(30, 40, 60, 0.9);
+      border: 1px solid rgba(100, 160, 255, 0.5);
+      border-radius: 5px;
+      width: 300px;
+      z-index: 20;
+      display: none;
+      font-size: 12px;
+    }
+    
+    .detail-close {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      cursor: pointer;
+      color: #a0c8ff;
+    }
+    
+    #attentionVisualization {
+      position: absolute;
+      bottom: 20px;
+      left: calc(20% + 20px);
+      width: 240px;
+      height: 200px;
+      background-color: rgba(21, 26, 37, 0.85);
+      border: 1px solid rgba(60, 100, 170, 0.3);
+      border-radius: 5px;
+      padding: 10px;
+      display: none;
+      font-size: 12px;
+    }
+    
+    .attention-title {
+      font-size: 13px;
+      font-weight: bold;
+      margin-bottom: 5px;
+      color: #a0c8ff;
+      text-align: center;
+    }
+    
+    #mainContent {
+      position: absolute;
+      left: 20%;
+      width: 60%;
+      height: 100%;
+    }
+    
+    #toggleInfoPanel {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 20;
+      padding: 5px;
+      font-size: 12px;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    #toggleControlPanel {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 20;
+      padding: 5px;
+      font-size: 12px;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .minimized {
+      transform: translateX(-100%);
+    }
+    
+    .phase-navigation {
+      margin: 10px 0;
+    }
+    
+    .phase-selector {
+      margin-top: 15px;
+      padding-top: 15px;
+      border-top: 1px solid rgba(100, 140, 255, 0.3);
+    }
+    
+    .phase-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-top: 8px;
+    }
+    
+    .phase-btn {
+      font-size: 11px;
+      padding: 5px;
+      flex: 1 0 calc(50% - 5px);
+      text-align: center;
+      background-color: rgba(60, 100, 170, 0.2);
+    }
+    
+    .phase-btn.active {
+      background-color: rgba(80, 140, 255, 0.4);
+      box-shadow: 0 0 8px rgba(80, 140, 255, 0.6);
+    }
+  </style>
+</head>
+<body>
+  <div id="toggleInfoPanel">≡</div>
+  <div id="toggleControlPanel">≡</div>
+  <div id="mainContent"></div>
+  <div id="infoPanel">
+    <div id="phaseName">Phase: Initialization</div>
+    <div id="phaseDescription">Preparing transformer architecture...</div>
+    <div id="componentInfo"></div>
+  </div>
+  
+  <div class="control-panel" id="control-panel">
+    <h3>Controls</h3>
+    <div class="control-group">
+      <button id="playPauseBtn">⏸️ Pause</button>
+      <button id="restartBtn">🔄 Restart</button>
+    </div>
+    <div class="control-group phase-navigation">
+      <button id="prevPhaseBtn">◀ Previous Phase</button>
+      <button id="nextPhaseBtn">Next Phase ▶</button>
+    </div>
+    <div class="control-group">
+      <div class="slider-container">
+        <div class="slider-label">Animation Speed</div>
+        <input type="range" id="speedSlider" min="0.2" max="2" step="0.1" value="1">
+      </div>
+    </div>
+    <div class="control-group">
+      <button id="toggleAttentionBtn" class="toggle-button">Show Attention Maps</button>
+      <button id="toggleDetailBtn" class="toggle-button">Advanced Mode</button>
+    </div>
+    <div class="phase-selector">
+      <div class="slider-label">Jump to Phase:</div>
+      <div class="phase-buttons">
+        <button class="phase-btn" data-phase="0">1. Init</button>
+        <button class="phase-btn" data-phase="1">2. Tokens</button>
+        <button class="phase-btn" data-phase="2">3. Layers</button>
+        <button class="phase-btn" data-phase="3">4. Attention</button>
+        <button class="phase-btn" data-phase="4">5. Output</button>
+        <button class="phase-btn" data-phase="5">6. Projection</button>
+        <button class="phase-btn" data-phase="6">7. Generation</button>
+      </div>
+    </div>
+  </div>
+  
+  <div id="attentionVisualization">
+    <div class="attention-title">Attention Patterns</div>
+    <canvas id="attentionCanvas" width="280" height="170"></canvas>
+  </div>
+  
+  <div id="layerDetailPanel" class="layer-detail">
+    <span class="detail-close">✕</span>
+    <div id="layerDetailContent"></div>
+  </div>
+  
+  <div class="tooltip" id="tooltip"></div>
+  
+  <script>
+    // Animation state
+    let phase = 0;
+    let phaseTime = 0;
+    let tokenIndex = 0;
+    let generationIndex = 0;
+    let animationSpeed = 1;
+    let isPaused = false;
+    let showAttentionMaps = false;
+    let advancedMode = false;
+    let hoveredElement = null;
+    let selectedElement = null;
+    let attentionMapLayer = 0;
+    let attentionMapHead = 0;
+    let manualPhaseSelection = false;
+    
+    // Architecture configuration
+    const numLayers = 24;
+    const numHeads = 16;
+    const hiddenDim = 4096;
+    const vocabSize = 50000;
+    const ffnDim = 16384;
+    
+    // Layout constants
+    let STAGE_WIDTH, STAGE_HEIGHT;
+    let INPUT_X, LAYERS_X, OUTPUT_X;
+    let HEADER_Y, CONTENT_Y, CONTENT_HEIGHT, FOOTER_Y;
+    let sectionWidth;
+    
+    // Colors
+    const COLORS = {
+      background: [21, 26, 37],
+      panel: [30, 40, 60],
+      panelBorder: [60, 100, 170, 50],
+      inputToken: [70, 130, 210],
+      layerBase: [40, 70, 120],
+      layerAccent: [80, 140, 255],
+      attentionHead: [120, 180, 255],
+      attentionLine: [160, 210, 255, 30],
+      outputToken: [70, 180, 120],
+      outputAccent: [100, 255, 150],
+      text: [220, 230, 240],
+      dimText: [180, 190, 200],
+      highlight: [255, 200, 100],
+      ffn: [255, 140, 80],
+      positionalEncoding: [180, 120, 220],
+      normalization: [220, 220, 100]
+    };
+    
+    // Animation elements
+    let inputTokens = [];
+    let embeddings = [];
+    let layers = [];
+    let attentionPatterns = [];
+    let outputTokens = [];
+    let flowParticles = [];
+    let attentionMaps = [];
+    let tokenProbabilities = [];
+    
+    // Input prompt and generated code
+    const inputPrompt = "Create a p5js graphical animation";
+    const tokenizedPrompt = inputPrompt.split(/\b/).filter(t => t.trim().length > 0);
+    
+    const outputCode = [
+      "function setup() {",
+      "  createCanvas(800, 600);",
+      "  background(10);",
+      "}",
+      "",
+      "function draw() {",
+      "  background(10, 20);",
+      "  // Draw animation elements",
+      "  drawParticles();",
+      "  updatePhysics();",
+      "}"
+    ];
+    
+    // Phase descriptions
+    const phaseDescriptions = [
+      "Setting up the model architecture with transformer layers, attention heads, feed-forward networks, and normalization components. The diagram shows a simplified version of the full architecture, which contains 24 transformer layers with 16 attention heads each.",
+      
+      "Converting input text into tokens (atomic units of text) and creating embedding vectors - high-dimensional numerical representations that capture semantic meaning. Each token is transformed into a vector of size 4096, which allows the model to understand and process language. Positional encodings are also added to give the model awareness of token order.",
+      
+      "Processing tokens through transformer layers, each containing self-attention mechanisms and feed-forward neural networks. Each layer refines the representation, extracting increasingly abstract features from the input. Residual connections (orange paths) allow information to flow more directly through the network, helping with training deeper architectures.",
+      
+      "Self-attention mechanisms allow tokens to 'focus' on other tokens based on relevance and relationships. Each attention head specializes in different types of relationships (e.g., syntactic, semantic, or task-specific patterns). The visualization shows how attention heads connect to different input tokens with varying strengths, forming a complex web of relationships.",
+      
+      "The model produces final hidden state vectors for each token position, representing a contextualized understanding of the input. These vectors contain all the information needed to predict the next token, combining meaning from across the input context.",
+      
+      "At the output layer, the model applies a linear projection and softmax operation to calculate probability distributions over the entire vocabulary (50,000+ tokens). This transforms the hidden vectors back into human-readable token probabilities. The process compares the final vector representation against the vocabulary embedding matrix.",
+      
+      "The model generates code one token at a time in an autoregressive manner. Each generated token becomes part of the context for the next prediction, creating a feedback loop. This allows the model to maintain coherence and build increasingly complex structures token by token. The generation process continues until a natural stopping point or a specified length is reached."
+    ];
+    
+    // Component explanations for the info panel
+    const componentExplanations = {
+      token: "Tokens are the basic units of text that the model processes. The input text is split into tokens, which can be words, subwords, or individual characters depending on the tokenization method.",
+      
+      embedding: "Embeddings transform tokens into high-dimensional vectors (4096 dimensions) that capture semantic meanings. Each position in the vector represents different features of the token's meaning and usage patterns learned from training data.",
+      
+      positionalEncoding: "Positional encodings add information about token position to embeddings. This is critical because transformer models process all tokens simultaneously and would otherwise lose sequence information.",
+      
+      attention: "Attention mechanisms allow the model to focus on relevant parts of the input when processing each token. Multi-head attention splits this process across multiple 'heads', each specializing in different relationship patterns.",
+      
+      ffn: "Feed-forward networks in each transformer layer apply non-linear transformations to token representations. They consist of two linear transformations with a ReLU activation function in between, expanding to 16,384 dimensions internally.",
+      
+      normalization: "Layer normalization stabilizes the learning process by normalizing the inputs across features. It's applied before the attention mechanism and feed-forward network in each transformer layer.",
+      
+      residual: "Residual connections add the input of a sub-layer to its output, helping information flow through deep networks. These connections are crucial for training very deep transformer architectures.",
+      
+      layerOverview: "Each transformer layer refines token representations through self-attention and feed-forward processing. Claude has 24 such layers, allowing for increasingly sophisticated understanding of the input text.",
+      
+      tokenGeneration: "Token generation involves calculating probability distributions over the entire vocabulary (50,000+ tokens) and selecting the most likely next token. This process repeats autoregressively, with each new token becoming part of the context."
+    };
+
+    // More detailed technical explanations for advanced mode
+    const advancedExplanations = {
+      token: "Tokenization typically uses a subword algorithm like Byte-Pair Encoding (BPE) or SentencePiece, which identifies common subword units to balance vocabulary size with representation power. Each token is mapped to a unique integer ID for processing.",
+      
+      embedding: "Token embeddings are learned during training and form a lookup table that maps token IDs to dense vector representations. The embedding dimension (d_model=4096) determines the model's capacity to capture semantic relationships. These vectors contain distributed representations across many dimensions rather than one-hot encodings.",
+      
+      positionalEncoding: "Positional encodings use sine and cosine functions of different frequencies: PE(pos,2i) = sin(pos/10000^(2i/d_model)) and PE(pos,2i+1) = cos(pos/10000^(2i/d_model)), where pos is the position and i is the dimension. This creates a unique pattern for each position that the model can learn to interpret.",
+      
+      attention: "The self-attention mechanism computes attention scores as scaled dot products between query (Q) and key (K) vectors: Attention(Q,K,V) = softmax(QK^T/√d_k)V. Multiple attention heads (16 in Claude) project inputs into different subspaces, each capturing different relationship types. The attention matrices effectively learn graph-like structures among tokens.",
+      
+      ffn: "The feed-forward network expands each position's representation to a higher dimension (16,384) with the first linear layer, applies a non-linearity (GELU activation), then projects back to the model dimension (4,096) with the second linear layer: FFN(x) = Linear_2(GELU(Linear_1(x))). This allows for complex non-linear transformations of the token representations.",
+      
+      normalization: "Layer normalization computes the mean and variance across the feature dimension for each token position and normalizes accordingly: LN(x) = γ(x-μ)/√(σ²+ε) + β, where γ and β are learnable parameters. This helps maintain stable activations throughout the deep network.",
+      
+      residual: "Residual connections implement x + Sublayer(x) for each sublayer, allowing gradients to flow more directly during backpropagation. Without these connections, very deep networks would suffer from optimization difficulties like vanishing gradients.",
+      
+      layerOverview: "Each transformer layer follows the architecture: LayerNorm → Self-Attention → Add & LayerNorm → Feed-Forward → Add. This structure allows for efficient processing of sequence data while maintaining parallelizability. The 24 layers provide hierarchical feature extraction, with earlier layers often capturing more syntactic patterns and later layers more semantic/logical relationships.",
+      
+      tokenGeneration: "Next token prediction applies a linear layer to the final vector representation followed by a softmax function to obtain a probability distribution: p(token) = softmax(Wx + b). During inference, the model may use strategies like temperature sampling, top-k, or nucleus sampling to balance predictability and creativity."
+    };
+    
+    function setup() {
+      createCanvas(windowWidth, windowHeight);
+      document.getElementById('mainContent').appendChild(canvas);
+      setupLayout();
+      setupArchitecture();
+      createAttentionMaps();
+      updateInfoPanel();
+      setupEventListeners();
+    }
+    
+    function setupLayout() {
+      // Calculate layout dimensions based on the mainContent area
+      const mainContent = document.getElementById('mainContent');
+      STAGE_WIDTH = mainContent.offsetWidth;
+      STAGE_HEIGHT = mainContent.offsetHeight;
+      
+      // Horizontal divisions - adjusted for the 60% central area
+      const horizontalPadding = STAGE_WIDTH * 0.05;
+      const availableWidth = STAGE_WIDTH - (horizontalPadding * 2);
+      sectionWidth = availableWidth / 3;
+      
+      INPUT_X = horizontalPadding + sectionWidth * 0.5;
+      LAYERS_X = horizontalPadding + sectionWidth * 1.5;
+      OUTPUT_X = horizontalPadding + sectionWidth * 2.5;
+      
+      // Vertical divisions
+      HEADER_Y = STAGE_HEIGHT * 0.08;
+      CONTENT_Y = STAGE_HEIGHT * 0.15;
+      CONTENT_HEIGHT = STAGE_HEIGHT * 0.7;
+      FOOTER_Y = STAGE_HEIGHT * 0.9;
+    }
+    
+    function setupArchitecture() {
+      // Create input token representations
+      if (!window.panelLayout) return; // Wait until panels are drawn
+      
+      const inputPanel = window.panelLayout.inputPanel;
+      const layersPanel = window.panelLayout.layersPanel;
+      const outputPanel = window.panelLayout.outputPanel;
+      const headerHeight = window.panelLayout.headerHeight;
+      
+      // Create input token representations
+      const tokenSpacing = (inputPanel.height - headerHeight - 40) / (tokenizedPrompt.length + 1);
+      for (let i = 0; i < tokenizedPrompt.length; i++) {
+        const tokenY = inputPanel.y + headerHeight + (i + 1) * tokenSpacing;
+        inputTokens.push({
+          text: tokenizedPrompt[i],
+          x: inputPanel.x + inputPanel.width * 0.35,
+          y: tokenY,
+          opacity: 0,
+          activated: false,
+          id: `token-${i}`,
+          type: 'token'
+        });
+        
+        // Create embedding visualization
+        embeddings.push({
+          tokenIndex: i,
+          x: inputPanel.x + inputPanel.width * 0.7,
+          y: tokenY,
+          width: 60,
+          height: 16,
+          values: Array(16).fill(0).map(() => random(-1, 1)),
+          opacity: 0,
+          id: `embedding-${i}`,
+          type: 'embedding'
+        });
+      }
+      
+      // Create transformer layers
+      const visibleLayers = 6; // Number of visible layers to show
+      const layerSpacing = (layersPanel.height - headerHeight - 40) / (visibleLayers + 1);
+      
+      for (let i = 0; i < visibleLayers; i++) {
+        const layerY = layersPanel.y + headerHeight + (i + 1) * layerSpacing;
+        
+        // Create layer components
+        const layerComponents = {
+          // Pre-attention normalization
+          normPre: {
+            x: layersPanel.x + layersPanel.width * 0.2,
+            y: layerY - 16,
+            width: 40,
+            height: 16,
+            opacity: 0,
+            id: `norm1-${i}`,
+            type: 'normalization'
+          },
+          
+          // Multi-head attention
+          attention: {
+            x: layersPanel.x + layersPanel.width * 0.5,
+            y: layerY,
+            width: layersPanel.width * 0.5,
+            height: 32,
+            opacity: 0,
+            id: `attention-${i}`,
+            type: 'attention'
+          },
+          
+          // Post-attention normalization
+          normPost: {
+            x: layersPanel.x + layersPanel.width * 0.7,
+            y: layerY - 16,
+            width: 40,
+            height: 16,
+            opacity: 0,
+            id: `norm2-${i}`,
+            type: 'normalization'
+          },
+          
+          // Feed-forward network
+          ffn: {
+            x: layersPanel.x + layersPanel.width * 0.85,
+            y: layerY,
+            width: 50,
+            height: 32,
+            opacity: 0,
+            id: `ffn-${i}`,
+            type: 'ffn'
+          }
+        };
+        
+        // Create attention heads for this layer
+        const visibleHeads = 6; // Number of visible heads per layer
+        const headSpacing = (layersPanel.width * 0.5) / visibleHeads;
+        const heads = [];
+        
+        for (let j = 0; j < visibleHeads; j++) {
+          const headX = layersPanel.x + layersPanel.width * 0.25 + j * headSpacing;
+          heads.push({
+            x: headX,
+            y: layerY,
+            radius: 6,
+            opacity: 0,
+            activated: false,
+            id: `head-${i}-${j}`,
+            type: 'attentionHead',
+            layerIndex: i,
+            headIndex: j
+          });
+        }
+        
+        // Add layer to layers array
+        layers.push({
+          index: i,
+          x: layersPanel.x + layersPanel.width * 0.5,
+          y: layerY,
+          width: layersPanel.width * 0.9,
+          height: 32,
+          opacity: 0,
+          activated: false,
+          components: layerComponents,
+          heads: heads,
+          id: `layer-${i}`,
+          type: 'layer'
+        });
+      }
+      
+      // Ensure we have probSection and outputSection defined
+      if (!window.panelLayout.probSection || !window.panelLayout.outputSection) {
+        // Define these sections directly from the output panel
+        const probSection = {
+          x: outputPanel.x,
+          y: outputPanel.y + headerHeight,
+          width: outputPanel.width,
+          height: outputPanel.height * 0.3
+        };
+        
+        const outputSection = {
+          x: outputPanel.x,
+          y: outputPanel.y + headerHeight + probSection.height,
+          width: outputPanel.width,
+          height: outputPanel.height * 0.7 - headerHeight
+        };
+        
+        window.panelLayout.probSection = probSection;
+        window.panelLayout.outputSection = outputSection;
+      }
+      
+      // Get the probability and output sections
+      const probSection = window.panelLayout.probSection;
+      const outputSection = window.panelLayout.outputSection;
+      
+      // Create token probability distribution for next token prediction
+      const probabilityY = probSection.y + 60;
+      const probSpacing = 25; // Reduced spacing to fit in section
+      for (let i = 0; i < 5; i++) {
+        let tokenText;
+        let probability;
+        
+        if (i === 0) {
+          tokenText = "function";
+          probability = 0.65;
+        } else if (i === 1) {
+          tokenText = "const";
+          probability = 0.20;
+        } else if (i === 2) {
+          tokenText = "let";
+          probability = 0.10;
+        } else if (i === 3) {
+          tokenText = "class";
+          probability = 0.03;
+        } else {
+          tokenText = "var";
+          probability = 0.02;
+        }
+        
+        tokenProbabilities.push({
+          text: tokenText,
+          probability: probability,
+          x: probSection.x + probSection.width * 0.5,
+          y: probabilityY + i * probSpacing,
+          opacity: 0,
+          id: `prob-${i}`,
+          type: 'probability'
+        });
+      }
+      
+      // Create output token slots
+      const outputSpacing = (outputSection.height - 40) / (outputCode.length + 1);
+      for (let i = 0; i < outputCode.length; i++) {
+        const tokenY = outputSection.y + 35 + i * outputSpacing;
+        outputTokens.push({
+          text: outputCode[i],
+          x: outputSection.x + outputSection.width * 0.5,
+          y: tokenY,
+          opacity: 0,
+          generated: false,
+          id: `output-${i}`,
+          type: 'outputToken'
+        });
+      }
+      
+      // Setup attention patterns
+      setupAttentionPatterns();
+    }
+    
+    function setupAttentionPatterns() {
+      // Create patterns for different attention heads
+      attentionPatterns = [];
+      
+      // For each layer and head, create meaningful attention patterns
+      for (let i = 0; i < layers.length; i++) {
+        const layer = layers[i];
+        
+        for (let j = 0; j < layer.heads.length; j++) {
+          const head = layer.heads[j];
+          let pattern = {
+            layerIndex: i,
+            headIndex: j,
+            targets: [],
+            strength: 0
+          };
+          
+          // Different attention patterns based on layer and head position
+          if (i === 0) {
+            // First layer tends to focus on local context
+            if (j % 2 === 0) {
+              // Even heads: focus on adjacent tokens
+              const focusToken = floor(random(inputTokens.length));
+              pattern.targets.push(focusToken);
+              if (focusToken > 0) pattern.targets.push(focusToken - 1);
+              if (focusToken < inputTokens.length - 1) pattern.targets.push(focusToken + 1);
+            } else {
+              // Odd heads: focus on specific tokens
+              pattern.targets.push(j % inputTokens.length);
+            }
+          } else if (i === 1) {
+            // Second layer might focus on syntactic patterns
+            if (j < 3) {
+              // First few heads: broad attention
+              pattern.targets = [0, 2, 4].filter(t => t < inputTokens.length);
+            } else {
+              // Later heads: specific attention
+              pattern.targets = [1, 3].filter(t => t < inputTokens.length);
+            }
+          } else if (i >= layers.length - 2) {
+            // Last layers tend toward task-specific patterns
+            // Focus on tokens relevant to code generation
+            pattern.targets = [0, 2].filter(t => t < inputTokens.length); // "Create", "graphical"
+          } else {
+            // Middle layers have mixed patterns
+            const numTargets = 1 + floor(random(3));
+            for (let k = 0; k < numTargets; k++) {
+              const targetToken = floor(random(inputTokens.length));
+              if (!pattern.targets.includes(targetToken)) {
+                pattern.targets.push(targetToken);
+              }
+            }
+          }
+          
+          attentionPatterns.push(pattern);
+        }
+      }
+    }
+    
+    function createAttentionMaps() {
+      // Create attention maps for visualization
+      attentionMaps = [];
+      
+      // For each layer
+      for (let i = 0; i < 3; i++) {
+        const layerMap = [];
+        
+        // For each head in the layer
+        for (let j = 0; j < 4; j++) {
+          const headMap = [];
+          
+          // Create attention scores for each token pair
+          for (let k = 0; k < tokenizedPrompt.length; k++) {
+            const row = [];
+            for (let l = 0; l < tokenizedPrompt.length; l++) {
+              let value;
+              
+              // Generate different attention patterns based on layer and head
+              if (i === 0) {
+                // First layer: local attention
+                const distance = abs(k - l);
+                value = j % 2 === 0 ? 
+                  // Local pattern based on proximity
+                  1 / (distance + 1) : 
+                  // Position-based pattern
+                  (l === j % tokenizedPrompt.length) ? 0.8 : 0.2;
+              } else if (i === 1) {
+                // Second layer: syntactic patterns
+                const distance = abs(k - l);
+                value = (j === 0 && k === l) ? 0.9 : // Self-attention
+                       (j === 1 && l === 0) ? 0.8 : // First token focus
+                       (j === 2 && l === k + 1 && l < tokenizedPrompt.length) ? 0.8 : // Next token
+                       (j === 3) ? 1 / (distance + 1) * random(0.5, 1) : // Mixed
+                       random(0, 0.3); // Background attention
+              } else {
+                // Third layer: semantic patterns
+                const distance = abs(k - l);
+                value = (j === 0 && l === 0) ? 0.9 : // First token
+                       (j === 1 && (l === 2 || l === 4)) ? 0.8 : // Content words
+                       (j === 2 && k === l) ? 0.7 : // Self-attention
+                       (j === 3 && distance <= 1) ? 0.6 : // Local
+                       random(0, 0.2); // Background attention
+              }
+              
+              row.push(value);
+            }
+            headMap.push(row);
+          }
+          layerMap.push(headMap);
+        }
+        attentionMaps.push(layerMap);
+      }
+    }
+    
+    function draw() {
+      if (!isPaused) {
+        // Update phase time based on animation speed
+        phaseTime += 0.005 * animationSpeed;
+        if (phaseTime > 1 && phase < 5) {
+          phase++;
+          phaseTime = 0;
+          updateInfoPanel();
+        }
+      }
+      
+      // Clear background
+      background(COLORS.background);
+      
+      // Draw panel backgrounds and headers
+      drawPanels();
+      
+      // Initial setup might need panel dimensions
+      if (inputTokens.length === 0 && window.panelLayout) {
+        setupArchitecture();
+      }
+      
+      // Only continue if architecture is set up
+      if (inputTokens.length === 0) return;
+      
+      // Update phase-specific elements
+      updatePhase();
+      
+      // Draw model components
+      drawInputTokens();
+      drawEmbeddings();
+      drawTransformerLayers();
+      drawAttentionPatterns();
+      drawOutputElements();
+      drawFlowParticles();
+      
+      // Draw footer
+      drawFooter();
+      
+      // Draw attention map visualization if enabled
+      if (showAttentionMaps) {
+        drawAttentionMapCanvas();
+      }
+      
+      // Draw tooltip if hovering over an element
+      if (hoveredElement) {
+        drawTooltip();
+      }
+    }
+    
+    function drawPanels() {
+      const contentWidth = width * 0.9;
+      const contentHeight = height * 0.85;
+      const panelSpacing = width * 0.03;
+      const panelWidth = (contentWidth - panelSpacing * 4) / 3;
+      const panelX1 = width * 0.05 + panelSpacing;
+      const panelX2 = panelX1 + panelWidth + panelSpacing;
+      const panelX3 = panelX2 + panelWidth + panelSpacing;
+      const panelY = height * 0.1;
+      
+      // Panel backgrounds with rounded corners
+      noStroke();
+      fill(...COLORS.panel);
+      
+      // Input panel
+      rect(panelX1, panelY, panelWidth, contentHeight, 10);
+      
+      // Transformer layers panel
+      rect(panelX2, panelY, panelWidth, contentHeight, 10);
+      
+      // Output panel
+      rect(panelX3, panelY, panelWidth, contentHeight, 10);
+      
+      // Panel headers
+      fill(...COLORS.text);
+      textAlign(CENTER, TOP);
+      textSize(16);
+      text("Input Tokens & Embeddings", panelX1 + panelWidth/2, panelY + 15);
+      text("Transformer Layers", panelX2 + panelWidth/2, panelY + 15);
+      text("Output Generation", panelX3 + panelWidth/2, panelY + 15);
+      
+      // Panel borders
+      noFill();
+      stroke(...COLORS.panelBorder);
+      strokeWeight(1);
+      rect(panelX1, panelY, panelWidth, contentHeight, 10);
+      rect(panelX2, panelY, panelWidth, contentHeight, 10);
+      rect(panelX3, panelY, panelWidth, contentHeight, 10);
+      
+      // Layer count indicator
+      if (phase >= 1) {
+        fill(...COLORS.dimText);
+        textAlign(CENTER, BOTTOM);
+        textSize(14);
+        text(`Showing 6 of ${numLayers} total layers`, panelX2 + panelWidth/2, panelY + contentHeight - 15);
+      }
+      
+      // Store panel dimensions for positioning elements
+      window.panelLayout = {
+        inputPanel: { x: panelX1, y: panelY, width: panelWidth, height: contentHeight },
+        layersPanel: { x: panelX2, y: panelY, width: panelWidth, height: contentHeight },
+        outputPanel: { x: panelX3, y: panelY, width: panelWidth, height: contentHeight },
+        headerHeight: 40,
+        
+        // Define probability and output sections
+        probSection: {
+          x: panelX3,
+          y: panelY + 40, // Start after header
+          width: panelWidth,
+          height: contentHeight * 0.3
+        },
+        
+        outputSection: {
+          x: panelX3,
+          y: panelY + 40 + (contentHeight * 0.3),
+          width: panelWidth,
+          height: contentHeight * 0.7 - 40
+        }
+      };
+    }
+    
+    function updatePhase() {
+      switch(phase) {
+        case 0: // Initialization phase
+          // Fade in the model architecture
+          for (let i = 0; i < layers.length; i++) {
+            const layer = layers[i];
+            layer.opacity = min(255, phaseTime * 510);
+            
+            // Fade in layer components
+            for (const componentKey in layer.components) {
+              layer.components[componentKey].opacity = min(255, phaseTime * 510 - 100);
+            }
+            
+            // Fade in attention heads
+            for (let j = 0; j < layer.heads.length; j++) {
+              const head = layer.heads[j];
+              head.opacity = min(255, phaseTime * 510 - 150);
+            }
+          }
+          break;
+          
+        case 1: // Tokenization & embedding phase
+          // Activate input tokens sequentially
+          const tokenToActivate = floor(phaseTime * tokenizedPrompt.length * 1.5);
+          for (let i = 0; i < inputTokens.length; i++) {
+            if (i <= tokenToActivate) {
+              inputTokens[i].opacity = 255;
+              inputTokens[i].activated = true;
+              
+              // Activate corresponding embedding
+              if (i < embeddings.length) {
+                embeddings[i].opacity = min(255, (phaseTime * tokenizedPrompt.length * 1.5 - i) * 255);
+                
+                // Create flow particle from token to its embedding
+                if (i === tokenToActivate && frameCount % 10 === 0) {
+                  createFlowParticle(
+                    inputTokens[i].x, inputTokens[i].y, 
+                    embeddings[i].x, embeddings[i].y, 
+                    COLORS.inputToken
+                  );
+                }
+              }
+              
+              // Create flow particle from embedding to first layer
+              if (i === tokenToActivate && frameCount % 15 === 0 && embeddings[i].opacity > 200) {
+                createFlowParticle(
+                  embeddings[i].x, embeddings[i].y, 
+                  layers[0].components.normPre.x, layers[0].components.normPre.y, 
+                  COLORS.inputToken
+                );
+              }
+            }
+          }
+          break;
+          
+        case 2: // Layer processing phase
+          // Activate layers sequentially
+          const layerToActivate = floor(phaseTime * layers.length * 1.2);
+          for (let i = 0; i < layers.length; i++) {
+            if (i <= layerToActivate) {
+              layers[i].activated = true;
+              
+              // Activate layer components in sequence
+              const components = layers[i].components;
+              const layerProgress = (phaseTime * layers.length * 1.2) - i;
+              
+              if (layerProgress > 0) components.normPre.opacity = min(255, layerProgress * 4 * 255);
+              if (layerProgress > 0.25) components.attention.opacity = min(255, (layerProgress - 0.25) * 4 * 255);
+              if (layerProgress > 0.5) components.normPost.opacity = min(255, (layerProgress - 0.5) * 4 * 255);
+              if (layerProgress > 0.75) components.ffn.opacity = min(255, (layerProgress - 0.75) * 4 * 255);
+              
+              // Create flow particles through components
+              if (i === layerToActivate && frameCount % 30 === 0) {
+                const progressInLayer = (phaseTime * layers.length * 1.2) - i;
+                if (progressInLayer > 0 && progressInLayer < 0.25) {
+                  // Norm to attention
+                  createFlowParticle(
+                    components.normPre.x, components.normPre.y,
+                    components.attention.x, components.attention.y,
+                    COLORS.layerAccent
+                  );
+                } else if (progressInLayer > 0.25 && progressInLayer < 0.5) {
+                  // Attention to norm
+                  createFlowParticle(
+                    components.attention.x, components.attention.y,
+                    components.normPost.x, components.normPost.y,
+                    COLORS.layerAccent
+                  );
+                } else if (progressInLayer > 0.5 && progressInLayer < 0.75) {
+                  // Norm to FFN
+                  createFlowParticle(
+                    components.normPost.x, components.normPost.y,
+                    components.ffn.x, components.ffn.y,
+                    COLORS.layerAccent
+                  );
+                } else if (progressInLayer > 0.75 && i < layers.length - 1) {
+                  // FFN to next layer
+                  createFlowParticle(
+                    components.ffn.x, components.ffn.y,
+                    layers[i+1].components.normPre.x, layers[i+1].components.normPre.y,
+                    COLORS.layerAccent
+                  );
+                }
+              }
+              
+              // Activate heads within this layer
+              for (let j = 0; j < layers[i].heads.length; j++) {
+                const headProgress = layerProgress - 0.1 - (j * 0.05);
+                if (headProgress > 0) {
+                  layers[i].heads[j].opacity = min(255, headProgress * 6 * 255);
+                  layers[i].heads[j].activated = true;
+                }
+              }
+            }
+          }
+          break;
+          
+        case 3: // Attention mechanism phase
+          // Gradually increase attention pattern strength
+          for (let pattern of attentionPatterns) {
+            if (layers[pattern.layerIndex].activated) {
+              pattern.strength = min(1, pattern.strength + 0.01 * animationSpeed);
+            }
+          }
+          
+          // Create occasional flow particles along attention paths
+          if (frameCount % floor(30 / animationSpeed) === 0) {
+            const randomPattern = random(attentionPatterns.filter(p => p.strength > 0.5));
+            if (randomPattern) {
+              const head = layers[randomPattern.layerIndex].heads[randomPattern.headIndex];
+              const randomTarget = random(randomPattern.targets);
+              if (randomTarget < inputTokens.length) {
+                const token = inputTokens[randomTarget];
+                createFlowParticle(token.x, token.y, head.x, head.y, COLORS.attentionHead);
+                
+                // Also create flow from head back to a different token occasionally
+                if (random() < 0.3 && randomPattern.targets.length > 1) {
+                  let otherTarget;
+                  do {
+                    otherTarget = random(randomPattern.targets);
+                  } while (otherTarget === randomTarget);
+                  
+                  if (otherTarget < inputTokens.length) {
+                    const otherToken = inputTokens[otherTarget];
+                    createFlowParticle(head.x, head.y, otherToken.x, otherToken.y, COLORS.attentionHead);
+                  }
+                }
+              }
+            }
+          }
+          
+          // Show residual connections
+          if (frameCount % floor(60 / animationSpeed) === 0) {
+            // Create flow particles for residual connections
+            for (let i = 0; i < layers.length - 1; i++) {
+              if (layers[i].activated && random() < 0.3) {
+                // Create residual connection from this layer to a layer 2 ahead
+                const skipTo = min(i + 2, layers.length - 1);
+                createFlowParticle(
+                  layers[i].x + layers[i].width/4, layers[i].y,
+                  layers[skipTo].x - layers[skipTo].width/4, layers[skipTo].y,
+                  COLORS.ffn,
+                  true // Flag as residual connection
+                );
+              }
+            }
+          }
+          break;
+          
+        case 4: // Output layer activation
+          // Show token probability distribution
+          for (let i = 0; i < tokenProbabilities.length; i++) {
+            const prob = tokenProbabilities[i];
+            prob.opacity = min(255, (phaseTime - i * 0.1) * 5 * 255);
+            
+            // Create flow particles from last layer to probability distribution
+            if (i === 0 && frameCount % floor(20 / animationSpeed) === 0) {
+              const lastLayer = layers[layers.length - 1];
+              createFlowParticle(
+                lastLayer.components.ffn.x, lastLayer.components.ffn.y,
+                prob.x, prob.y,
+                COLORS.layerAccent
+              );
+            }
+          }
+          
+          // Show "next token" probability preview on first output token
+          outputTokens[0].opacity = min(100 + sin(frameCount * 0.1) * 50, 255);
+          
+          // Pulse effect on highest probability token
+          if (tokenProbabilities[0].opacity > 200) {
+            const pulseIntensity = 30 + sin(frameCount * 0.2) * 20;
+            noFill();
+            stroke(...COLORS.highlight, pulseIntensity);
+            strokeWeight(2);
+            rect(tokenProbabilities[0].x - 70, tokenProbabilities[0].y - 10, 140, 20, 5);
+            
+            // Occasionally create flow from highest probability to output token
+            if (frameCount % floor(40 / animationSpeed) === 0) {
+              createFlowParticle(
+                tokenProbabilities[0].x, tokenProbabilities[0].y,
+                outputTokens[0].x, outputTokens[0].y,
+                COLORS.outputAccent
+              );
+            }
+          }
+          break;
+          
+        case 5: // Token generation
+          // Generate output tokens sequentially
+          if (frameCount % floor(25 / animationSpeed) === 0 && generationIndex < outputTokens.length) {
+            outputTokens[generationIndex].opacity = 255;
+            outputTokens[generationIndex].generated = true;
+            
+            // Create flow particle from last layer to this token
+            const lastLayer = layers[layers.length - 1];
+            createFlowParticle(
+              lastLayer.components.ffn.x, lastLayer.components.ffn.y,
+              outputTokens[generationIndex].x, outputTokens[generationIndex].y,
+              COLORS.outputAccent
+            );
+            
+            // Move to next token
+            generationIndex++;
+            
+            // Create flow particle from this token back to input (showing feedback loop)
+            if (generationIndex > 1) {
+              const prevToken = outputTokens[generationIndex - 1];
+              
+              // Add to context - flow back to first layer
+              createFlowParticle(
+                prevToken.x, prevToken.y,
+                layers[0].components.normPre.x, layers[0].components.normPre.y,
+                [150, 150, 255]
+              );
+              
+              // Reset token probabilities opacity for next prediction
+              for (let prob of tokenProbabilities) {
+                prob.opacity = 0;
+              }
+              
+              // After a short delay, show probabilities again for next token
+              setTimeout(() => {
+                if (phase === 5) {
+                  // Update token texts based on context
+                  const nextContextPosition = generationIndex;
+                  updateNextTokenProbabilities(nextContextPosition);
+                  
+                  // Fade probabilities back in
+                  for (let i = 0; i < tokenProbabilities.length; i++) {
+                    tokenProbabilities[i].opacity = 200;
+                  }
+                }
+              }, 300);
+            }
+          }
+          
+          // Continue attention mechanism
+          for (let pattern of attentionPatterns) {
+            pattern.strength = 0.5 + sin(frameCount * 0.05 + pattern.layerIndex * 0.2) * 0.3;
+          }
+          
+          // Highlight the next token to be generated
+          if (generationIndex < outputTokens.length) {
+            const nextToken = outputTokens[generationIndex];
+            nextToken.opacity = 100 + sin(frameCount * 0.1) * 50;
+            
+            // Pulse effect
+            if (frameCount % 30 < 15) {
+              noFill();
+              stroke(...COLORS.highlight, 150);
+              strokeWeight(2);
+              rect(nextToken.x - 100, nextToken.y - 15, 200, 30, 15);
+            }
+          }
+          break;
+      }
+      
+      // Update flow particles
+      updateFlowParticles();
+      
+      // Check for hover
+      checkHover();
+    }
+    
+    function drawInputTokens() {
+      for (let i = 0; i < inputTokens.length; i++) {
+        const token = inputTokens[i];
+        
+        // Token background
+        noStroke();
+        fill(...COLORS.inputToken, token.opacity * 0.8);
+        rect(token.x - 80, token.y - 15, 160, 30, 15);
+        
+        // Token text
+        fill(...COLORS.text, token.opacity);
+        textAlign(CENTER, CENTER);
+        textSize(14);
+        text(token.text, token.x, token.y);
+        
+        // Token label if in advanced mode
+        if (advancedMode && token.opacity > 200) {
+          fill(...COLORS.dimText, token.opacity * 0.7);
+          textAlign(CENTER, BOTTOM);
+          textSize(10);
+          text(`ID: ${10000 + i}`, token.x, token.y - 16);
+        }
+        
+        // Activation indicator
+        if (token.activated && frameCount % 40 < 20) {
+          noFill();
+          stroke(...COLORS.inputToken, token.opacity * 0.7);
+          strokeWeight(2);
+          rect(token.x - 80, token.y - 15, 160, 30, 15);
+        }
+        
+        // Draw positional encoding indicator if in phase 1+
+        if (phase >= 1 && token.opacity > 200) {
+          noStroke();
+          fill(...COLORS.positionalEncoding, token.opacity * 0.7);
+          rect(token.x - 75, token.y + 16, 25, 4, 2);
+          
+          // Label if in advanced mode
+          if (advancedMode) {
+            fill(...COLORS.positionalEncoding, token.opacity * 0.9);
+            textAlign(LEFT, TOP);
+            textSize(9);
+            text("pos", token.x - 75, token.y + 22);
+          }
+        }
+      }
+    }
+    
+    function drawEmbeddings() {
+      for (let embedding of embeddings) {
+        if (embedding.opacity <= 0) continue;
+        
+        // Background for embedding
+        noStroke();
+        fill(60, 100, 180, embedding.opacity * 0.6);
+        rect(embedding.x - embedding.width/2, embedding.y - embedding.height/2, 
+             embedding.width, embedding.height * 6, 5);
+        
+        // Draw embedding values as a small bar chart
+        for (let i = 0; i < min(embedding.values.length, 16); i++) {
+          const value = embedding.values[i];
+          const barHeight = abs(value) * 12;
+          const barY = embedding.y + (i % 8) * 10 - 30;
+          const barX = embedding.x - 30 + floor(i / 8) * 30;
+          
+          // Bar
+          noStroke();
+          fill(value > 0 ? [100, 200, 255, embedding.opacity] : [255, 100, 100, embedding.opacity]);
+          rect(barX, barY, 20, barHeight, 2);
+        }
+        
+        // Label
+        fill(...COLORS.text, embedding.opacity);
+        textAlign(CENTER, BOTTOM);
+        textSize(11);
+        text("Embedding", embedding.x, embedding.y - 35);
+        
+        // Technical details if in advanced mode
+        if (advancedMode) {
+          fill(...COLORS.dimText, embedding.opacity * 0.8);
+          textAlign(CENTER, TOP);
+          textSize(9);
+          text(`d=${hiddenDim}`, embedding.x, embedding.y + 35);
+        }
+      }
+    }
+    
+    function drawTransformerLayers() {
+      // Draw connecting lines between layer components
+      for (let layer of layers) {
+        if (layer.opacity <= 0) continue;
+        
+        const components = layer.components;
+        
+        // Only draw connections if components are visible
+        if (components.normPre.opacity > 0 && components.attention.opacity > 0) {
+          stroke(...COLORS.layerAccent, min(components.normPre.opacity, components.attention.opacity) * 0.7);
+          strokeWeight(1.5);
+          line(components.normPre.x + components.normPre.width/2, components.normPre.y,
+               components.attention.x - components.attention.width/2, components.attention.y);
+        }
+        
+        if (components.attention.opacity > 0 && components.normPost.opacity > 0) {
+          stroke(...COLORS.layerAccent, min(components.attention.opacity, components.normPost.opacity) * 0.7);
+          strokeWeight(1.5);
+          line(components.attention.x + components.attention.width/2, components.attention.y,
+               components.normPost.x - components.normPost.width/2, components.normPost.y);
+        }
+        
+        if (components.normPost.opacity > 0 && components.ffn.opacity > 0) {
+          stroke(...COLORS.layerAccent, min(components.normPost.opacity, components.ffn.opacity) * 0.7);
+          strokeWeight(1.5);
+          line(components.normPost.x + components.normPost.width/2, components.normPost.y,
+               components.ffn.x - components.ffn.width/2, components.ffn.y);
+        }
+      }
+      
+      // Draw residual connections
+      if (phase >= 2) {
+        for (let i = 0; i < layers.length - 1; i++) {
+          if (layers[i].activated && layers[i+1].activated) {
+            // Draw residual connection (skip connection)
+            stroke(...COLORS.ffn, 70);
+            strokeWeight(1.5);
+            noFill();
+            
+            // Curved path for residual connection
+            beginShape();
+            vertex(layers[i].x - layers[i].width/4, layers[i].y);
+            bezierVertex(
+              layers[i].x + 100, layers[i].y - 50,
+              layers[i+1].x - 100, layers[i+1].y - 50,
+              layers[i+1].x - layers[i+1].width/4, layers[i+1].y
+            );
+            endShape();
+            
+            // Flow particles on residual connections
+            if (random() < 0.02 * animationSpeed) {
+              const t = random();
+              const x1 = layers[i].x - layers[i].width/4;
+              const y1 = layers[i].y;
+              const x2 = layers[i+1].x - layers[i+1].width/4;
+              const y2 = layers[i+1].y;
+              
+              const x = bezierPoint(
+                x1, x1 + 100, x2 - 100, x2, 
+                t
+              );
+              const y = bezierPoint(
+                y1, y1 - 50, y2 - 50, y2,
+                t
+              );
+              
+              noStroke();
+              fill(...COLORS.ffn, 150);
+              ellipse(x, y, 3, 3);
+            }
+          }
+        }
+      }
+      
+      // Draw layer components
+      for (let layer of layers) {
+        // Layer outline/background
+        noStroke();
+        fill(...COLORS.layerBase, layer.opacity * 0.3);
+        rect(layer.x - layer.width/2, layer.y - layer.height/2, layer.width, layer.height, 16);
+        
+        // Layer label
+        fill(...COLORS.text, layer.opacity);
+        textAlign(CENTER, CENTER);
+        textSize(14);
+        text(`Layer ${layer.index + 1}`, layer.x, layer.y);
+        
+        // Draw layer components
+        const components = layer.components;
+        
+        // Normalization components
+        for (const normKey of ['normPre', 'normPost']) {
+          const norm = components[normKey];
+          if (norm.opacity <= 0) continue;
+          
+          // Normalization box
+          noStroke();
+          fill(...COLORS.normalization, norm.opacity * 0.7);
+          rect(norm.x - norm.width/2, norm.y - norm.height/2, norm.width, norm.height, 5);
+          
+          // Label
+          fill(...COLORS.text, norm.opacity);
+          textAlign(CENTER, CENTER);
+          textSize(10);
+          text("Norm", norm.x, norm.y);
+        }
+        
+        // Attention component
+        const attention = components.attention;
+        if (attention.opacity > 0) {
+          // Attention box
+          noStroke();
+          fill(...COLORS.layerAccent, attention.opacity * 0.3);
+          rect(attention.x - attention.width/2, attention.y - attention.height/2, 
+               attention.width, attention.height, 8);
+          
+          // Label
+          fill(...COLORS.text, attention.opacity);
+          textAlign(CENTER, CENTER);
+          textSize(12);
+          text("Multi-Head Attention", attention.x, attention.y);
+          
+          // Technical details if in advanced mode
+          if (advancedMode) {
+            fill(...COLORS.dimText, attention.opacity * 0.8);
+            textAlign(CENTER, BOTTOM);
+            textSize(9);
+            text(`${numHeads} heads`, attention.x, attention.y - attention.height/2 - 2);
+          }
+        }
+        
+        // Feed-forward component
+        const ffn = components.ffn;
+        if (ffn.opacity > 0) {
+          // FFN box
+          noStroke();
+          fill(...COLORS.ffn, ffn.opacity * 0.5);
+          rect(ffn.x - ffn.width/2, ffn.y - ffn.height/2, ffn.width, ffn.height, 8);
+          
+          // Label
+          fill(...COLORS.text, ffn.opacity);
+          textAlign(CENTER, CENTER);
+          textSize(12);
+          text("FFN", ffn.x, ffn.y);
+          
+          // Technical details if in advanced mode
+          if (advancedMode) {
+            fill(...COLORS.dimText, ffn.opacity * 0.8);
+            textAlign(CENTER, BOTTOM);
+            textSize(9);
+            text(`${ffnDim}`, ffn.x, ffn.y - ffn.height/2 - 2);
+          }
+        }
+        
+        // Draw attention heads
+        for (let head of layer.heads) {
+          if (head.opacity <= 0) continue;
+          
+          // Head circle
+          noStroke();
+          fill(...COLORS.attentionHead, head.opacity);
+          ellipse(head.x, head.y, head.radius * 2);
+          
+          // Activation glow
+          if (head.activated) {
+            const pulseSize = 1 + sin(frameCount * 0.1 + layer.index * 0.3 + head.headIndex * 0.2) * 0.3;
+            noFill();
+            stroke(...COLORS.attentionHead, 100);
+            strokeWeight(1);
+            ellipse(head.x, head.y, head.radius * 2 * pulseSize);
+          }
+          
+          // Head label if in advanced mode
+          if (advancedMode) {
+            fill(...COLORS.text, head.opacity * 0.8);
+            textAlign(CENTER, BOTTOM);
+            textSize(8);
+            text(`h${head.headIndex+1}`, head.x, head.y - head.radius - 2);
+          }
+        }
+      }
+    }
+    
+    function drawAttentionPatterns() {
+      // Only show attention patterns after phase 2
+      if (phase < 3) return;
+      
+      for (let pattern of attentionPatterns) {
+        if (pattern.strength > 0.1) {
+          const layer = layers[pattern.layerIndex];
+          const head = layer.heads[pattern.headIndex];
+          
+          // Only draw if layer and head are activated
+          if (!head.activated) continue;
+          
+          // Draw connections to targeted tokens
+          for (let targetIndex of pattern.targets) {
+            if (targetIndex < inputTokens.length) {
+              const token = inputTokens[targetIndex];
+              
+              // Draw attention line
+              const alpha = pattern.strength * 60;
+              stroke(...COLORS.attentionLine.slice(0, 3), alpha);
+              strokeWeight(pattern.strength * 1.5);
+              
+              // Draw curved attention line
+              noFill();
+              beginShape();
+              vertex(head.x, head.y);
+              const controlY = (head.y + token.y) / 2 - 20;
+              bezierVertex(
+                head.x - 50, controlY,
+                token.x + 50, controlY,
+                token.x, token.y
+              );
+              endShape();
+              
+              // Draw flow particles occasionally
+              if (random() < 0.003 * pattern.strength * animationSpeed) {
+                const t = random();
+                const x = bezierPoint(
+                  head.x, head.x - 50, token.x + 50, token.x,
+                  t
+                );
+                const y = bezierPoint(
+                  head.y, controlY, controlY, token.y,
+                  t
+                );
+                
+                noStroke();
+                fill(...COLORS.attentionHead, 150 * pattern.strength);
+                ellipse(x, y, 2, 2);
+              }
+            }
+          }
+        }
+      }
+    }
+    
+    function drawOutputElements() {
+      // Get sections from layout
+      if (!window.panelLayout || !window.panelLayout.probSection) return;
+      
+      const probSection = window.panelLayout.probSection;
+      const outputSection = window.panelLayout.outputSection;
+      
+      // Draw section backgrounds with slightly different colors for visibility
+      noStroke();
+      fill(...COLORS.panel, 150);
+      rect(probSection.x + 10, probSection.y, probSection.width - 20, probSection.height - 10, 5);
+      rect(outputSection.x + 10, outputSection.y + 10, outputSection.width - 20, outputSection.height - 20, 5);
+      
+      // Draw section divider
+      stroke(...COLORS.panelBorder);
+      strokeWeight(2);
+      line(probSection.x + 20, probSection.y + probSection.height - 5, 
+           probSection.x + probSection.width - 20, probSection.y + probSection.height - 5);
+      
+      // Add section titles with backgrounds for better visibility
+      fill(40, 60, 100, 200);
+      noStroke();
+      rect(probSection.x + probSection.width/2 - 100, probSection.y + 5, 200, 25, 5);
+      rect(outputSection.x + outputSection.width/2 - 80, outputSection.y + 15, 160, 25, 5);
+      
+      fill(...COLORS.text);
+      textAlign(CENTER, CENTER);
+      textSize(14);
+      text("Next Token Probabilities", probSection.x + probSection.width/2, probSection.y + 18);
+      text("Generated Output", outputSection.x + outputSection.width/2, outputSection.y + 28);
+      
+      // Draw token probability distribution
+      if (phase >= 4) {
+        for (let i = 0; i < tokenProbabilities.length; i++) {
+          const prob = tokenProbabilities[i];
+          if (prob.opacity <= 0) continue;
+          
+          // Calculate bar width based on probability
+          const maxWidth = probSection.width * 0.7;
+          const barWidth = prob.probability * maxWidth;
+          
+          // Probability background
+          noStroke();
+          fill(...COLORS.outputToken, prob.opacity * 0.3);
+          rect(prob.x - maxWidth/2, prob.y - 10, maxWidth, 20, 5);
+          
+          // Probability bar
+          fill(...COLORS.outputToken, prob.opacity * 0.7);
+          rect(prob.x - maxWidth/2, prob.y - 10, barWidth, 20, 5);
+          
+          // Token text
+          fill(...COLORS.text, prob.opacity);
+          textAlign(LEFT, CENTER);
+          textSize(12);
+          text(prob.text, prob.x - maxWidth/2 + 10, prob.y);
+          
+          // Probability value
+          textAlign(RIGHT, CENTER);
+          text((prob.probability * 100).toFixed(1) + "%", prob.x + maxWidth/2 - 10, prob.y);
+          
+          // Highlight for top token
+          if (i === 0 && phase === 4) {
+            const pulseIntensity = 100 + sin(frameCount * 0.2) * 50;
+            noFill();
+            stroke(...COLORS.highlight, pulseIntensity);
+            strokeWeight(1.5);
+            rect(prob.x - maxWidth/2, prob.y - 10, barWidth, 20, 5);
+          }
+        }
+        
+        // Technical details if in advanced mode
+        if (advancedMode) {
+          fill(...COLORS.dimText);
+          textAlign(CENTER, BOTTOM);
+          textSize(10);
+          text(`Vocab size: ${vocabSize}`, probSection.x + probSection.width/2, probSection.y + probSection.height - 10);
+        }
+      }
+      
+      // Draw output tokens
+      for (let i = 0; i < outputTokens.length; i++) {
+        const token = outputTokens[i];
+        if (token.opacity <= 0) continue;
+        
+        // Token background - size based on text length
+        const tokenWidth = min(outputSection.width * 0.8, max(160, token.text.length * 8));
+        noStroke();
+        fill(...COLORS.outputToken, token.opacity * 0.8);
+        rect(token.x - tokenWidth/2, token.y - 15, tokenWidth, 30, 15);
+        
+        // Token text
+        fill(...COLORS.text, token.opacity);
+        textAlign(CENTER, CENTER);
+        textSize(14);
+        text(token.text, token.x, token.y);
+        
+        // Generation effect
+        if (token.generated && frameCount % 30 < 15) {
+          noFill();
+          stroke(...COLORS.outputAccent, token.opacity * 0.7);
+          strokeWeight(2);
+          rect(token.x - tokenWidth/2, token.y - 15, tokenWidth, 30, 15);
+        }
+        
+        // Special highlight for token being generated
+        if (i === generationIndex && phase === 5) {
+          noFill();
+          stroke(...COLORS.highlight, 150 + sin(frameCount * 0.2) * 100);
+          strokeWeight(2);
+          rect(token.x - tokenWidth/2, token.y - 15, tokenWidth, 30, 15);
+        }
+      }
+      
+      // Current prediction tooltip - position it in the probabilities section
+      if (phase >= 4 && tokenProbabilities.length > 0 && tokenProbabilities[0].opacity > 200) {
+        // Show floating prediction label
+        fill(0, 0, 0, 200);
+        stroke(...COLORS.highlight, 100);
+        strokeWeight(1);
+        rectMode(CENTER);
+        rect(probSection.x + probSection.width/2, probSection.y + probSection.height - 30, 220, 30, 5);
+        rectMode(CORNER);
+        
+        // Prediction text
+        fill(...COLORS.text);
+        textAlign(CENTER, CENTER);
+        textSize(12);
+        text(`Predicted token: ${tokenProbabilities[0].text} (${(tokenProbabilities[0].probability * 100).toFixed(1)}%)`, 
+             probSection.x + probSection.width/2, probSection.y + probSection.height - 30);
+      }
+    }
+    
+    function createFlowParticle(startX, startY, endX, endY, color, isResidual = false) {
+      flowParticles.push({
+        startX: startX,
+        startY: startY,
+        endX: endX,
+        endY: endY,
+        x: startX,
+        y: startY,
+        progress: 0,
+        speed: random(0.01, 0.03) * animationSpeed,
+        color: color,
+        size: random(3, 6),
+        isResidual: isResidual
+      });
+    }
+    
+    function updateFlowParticles() {
+      for (let i = flowParticles.length - 1; i >= 0; i--) {
+        const p = flowParticles[i];
+        
+        // Update position
+        p.progress += p.speed;
+        
+        // Different curve types for different connections
+        let controlX1, controlY1, controlX2, controlY2;
+        
+        if (p.isResidual) {
+          // Residual connections have more pronounced curves
+          controlX1 = p.startX;
+          controlY1 = p.startY - 50;
+          controlX2 = p.endX;
+          controlY2 = p.endY - 50;
+        } else {
+          // Standard connections have gentle curves
+          controlX1 = p.startX + (p.endX - p.startX) * 0.3;
+          controlY1 = p.startY;
+          controlX2 = p.startX + (p.endX - p.startX) * 0.7;
+          controlY2 = p.endY;
+        }
+        
+        // Bezier interpolation for smooth paths
+        p.x = bezierPoint(p.startX, controlX1, controlX2, p.endX, p.progress);
+        p.y = bezierPoint(p.startY, controlY1, controlY2, p.endY, p.progress);
+        
+        // Remove if completed or if animation speed changes drastically
+        if (p.progress >= 1) {
+          flowParticles.splice(i, 1);
+        }
+      }
+    }
+    
+    function drawFlowParticles() {
+      for (let p of flowParticles) {
+        noStroke();
+        
+        // Main particle
+        fill(p.color[0], p.color[1], p.color[2], 200);
+        ellipse(p.x, p.y, p.size);
+        
+        // Trail effect
+        fill(p.color[0], p.color[1], p.color[2], 100);
+        ellipse(p.x, p.y, p.size * 1.5);
+      }
+    }
+    
+    function drawFooter() {
+      // Model information
+      fill(...COLORS.dimText);
+      textAlign(LEFT, BOTTOM);
+      textSize(12);
+      text(`Model Dimensions: Layers=${numLayers}, Heads=${numHeads}, Hidden Dim=${hiddenDim}, Vocab Size≈${vocabSize}`, 20, height - 20);
+      
+      // Title
+      fill(...COLORS.text);
+      textAlign(CENTER, BOTTOM);
+      textSize(16);
+      text("Transformer-Based Large Language Model Architecture", width/2, height - 20);
+      
+      // Animation controls info
+      fill(...COLORS.dimText);
+      textAlign(RIGHT, BOTTOM);
+      textSize(12);
+      text("Use controls to adjust animation speed and view options", width - 20, height - 20);
+    }
+    
+    function drawAttentionMapCanvas() {
+      const attentionDiv = document.getElementById('attentionVisualization');
+      attentionDiv.style.display = 'block';
+      
+      const canvas = document.getElementById('attentionCanvas');
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      // Only draw if there's attention data available
+      if (attentionMaps.length === 0 || phase < 3) return;
+      
+      // Get current layer and head
+      const layerIndex = min(attentionMapLayer, attentionMaps.length - 1);
+      const headIndex = min(attentionMapHead, attentionMaps[layerIndex].length - 1);
+      const attentionMatrix = attentionMaps[layerIndex][headIndex];
+      
+      // Update title
+      const titleElement = attentionDiv.querySelector('.attention-title');
+      titleElement.textContent = `Attention Map - Layer ${layerIndex + 1}, Head ${headIndex + 1}`;
+      
+      // Cell size
+      const tokenCount = tokenizedPrompt.length;
+      const cellSize = min(canvas.width, canvas.height) / (tokenCount + 1);
+      const startX = (canvas.width - cellSize * tokenCount) / 2;
+      const startY = (canvas.height - cellSize * tokenCount) / 2;
+      
+      // Draw token labels
+      ctx.font = '10px sans-serif';
+      ctx.fillStyle = '#a0c8ff';
+      ctx.textAlign = 'center';
+      
+      for (let i = 0; i < tokenCount; i++) {
+        // Row labels (source tokens)
+        ctx.fillText(tokenizedPrompt[i].substring(0, 4), 
+                     startX - 15, startY + i * cellSize + cellSize / 2 + 3);
+        
+        // Column labels (target tokens)
+        ctx.fillText(tokenizedPrompt[i].substring(0, 4), 
+                     startX + i * cellSize + cellSize / 2, startY - 15);
+      }
+      
+      // Draw attention matrix cells
+      for (let i = 0; i < tokenCount; i++) {
+        for (let j = 0; j < tokenCount; j++) {
+          const attentionValue = attentionMatrix[i][j];
+          
+          // Color based on attention strength
+          const blue = 180 + floor(attentionValue * 75);
+          const intensity = floor(attentionValue * 255);
+          ctx.fillStyle = `rgba(60, ${blue}, 255, ${attentionValue})`;
+          
+          // Draw cell
+          ctx.fillRect(startX + j * cellSize, startY + i * cellSize, cellSize - 1, cellSize - 1);
+          
+          // Draw value if high enough
+          if (attentionValue > 0.3) {
+            ctx.fillStyle = 'white';
+            ctx.font = '9px sans-serif';
+            ctx.fillText(attentionValue.toFixed(1), 
+                         startX + j * cellSize + cellSize / 2, 
+                         startY + i * cellSize + cellSize / 2 + 3);
+          }
+        }
+      }
+      
+      // Add controls to cycle through layers and heads
+      // These are handled by event listeners
+    }
+    
+    function drawTooltip() {
+      const tooltip = document.getElementById('tooltip');
+      
+      if (hoveredElement) {
+        // Set tooltip content based on element type
+        let content = '';
+        
+        switch(hoveredElement.type) {
+          case 'token':
+            content = advancedMode ? 
+              "Token: Input unit processed by the model" :
+              "Token: Text unit from the input prompt";
+            break;
+          case 'embedding':
+            content = advancedMode ?
+              "Embedding: Converts tokens to 4096-dimensional vectors that capture semantic meaning" :
+              "Embedding: Numerical representation of token meaning";
+            break;
+          case 'layer':
+            content = advancedMode ?
+              `Transformer Layer ${hoveredElement.index + 1}: Processes token representations through attention and feed-forward mechanisms` :
+              `Layer ${hoveredElement.index + 1}: Refines token understanding`;
+            break;
+          case 'attentionHead':
+            content = advancedMode ?
+              `Attention Head ${hoveredElement.headIndex + 1}: Calculates token relevance through query-key-value projections` :
+              `Attention Head: Focuses on relationships between tokens`;
+            break;
+          case 'attention':
+            content = advancedMode ?
+              "Multi-Head Attention: Parallel attention mechanisms that capture different relationship types" :
+              "Attention: Helps tokens focus on relevant context";
+            break;
+          case 'normalization':
+            content = advancedMode ?
+              "Layer Normalization: Stabilizes activations by normalizing across features" :
+              "Normalization: Helps stabilize the processing";
+            break;
+          case 'ffn':
+            content = advancedMode ?
+              "Feed-Forward Network: Non-linear transformation expanding to 16,384 dimensions" :
+              "FFN: Processes token representations";
+            break;
+          case 'outputToken':
+            content = advancedMode ?
+              "Generated Token: Output from the model's autoregressive generation process" :
+              "Generated Code: Model output token";
+            break;
+          case 'probability':
+            content = advancedMode ?
+              `Token Probability: ${hoveredElement.text} (${(hoveredElement.probability * 100).toFixed(1)}%) likelihood as next token` :
+              `Predicted token: ${hoveredElement.text} (${(hoveredElement.probability * 100).toFixed(1)}%)`;
+            break;
+          default:
+            content = "Hover over elements to see details";
+        }
+        
+        // Show tooltip
+        tooltip.textContent = content;
+        tooltip.style.opacity = "1";
+        tooltip.style.left = (mouseX + 10) + "px";
+        tooltip.style.top = (mouseY + 10) + "px";
+      } else {
+        // Hide tooltip
+        tooltip.style.opacity = "0";
+      }
+    }
+    
+    function checkHover() {
+      // Reset hover state
+      hoveredElement = null;
+      
+      // Check input tokens
+      for (let token of inputTokens) {
+        if (token.opacity > 0 && isMouseOver(token.x - 80, token.y - 15, 160, 30)) {
+          hoveredElement = token;
+          return;
+        }
+      }
+      
+      // Check embeddings
+      for (let embedding of embeddings) {
+        if (embedding.opacity > 0 && isMouseOver(embedding.x - embedding.width/2, embedding.y - embedding.height/2, 
+                                               embedding.width, embedding.height * 6)) {
+          hoveredElement = embedding;
+          return;
+        }
+      }
+      
+      // Check layers and their components
+      for (let layer of layers) {
+        if (layer.opacity > 0) {
+          // Check layer itself
+          if (isMouseOver(layer.x - layer.width/2, layer.y - layer.height/2, layer.width, layer.height)) {
+            hoveredElement = layer;
+            return;
+          }
+          
+          // Check layer components
+          for (const key in layer.components) {
+            const component = layer.components[key];
+            if (component.opacity > 0 && isMouseOver(component.x - component.width/2, component.y - component.height/2, 
+                                                  component.width, component.height)) {
+              hoveredElement = component;
+              return;
+            }
+          }
+          
+          // Check attention heads
+          for (let head of layer.heads) {
+            if (head.opacity > 0 && dist(mouseX, mouseY, head.x, head.y) < head.radius) {
+              hoveredElement = head;
+              return;
+            }
+          }
+        }
+      }
+      
+      // Check output tokens
+      for (let token of outputTokens) {
+        if (token.opacity > 0 && isMouseOver(token.x - 100, token.y - 15, 200, 30)) {
+          hoveredElement = token;
+          return;
+        }
+      }
+      
+      // Check token probabilities
+      for (let prob of tokenProbabilities) {
+        if (prob.opacity > 0 && isMouseOver(prob.x - 70, prob.y - 10, 140, 20)) {
+          hoveredElement = prob;
+          return;
+        }
+      }
+    }
+    
+    function isMouseOver(x, y, w, h) {
+      return mouseX >= x && mouseX <= x + w && mouseY >= y && mouseY <= y + h;
+    }
+    
+    function updateNextTokenProbabilities(contextPosition) {
+      // Update token probabilities based on current generation context
+      let newTokens, newProbs;
+      
+      if (contextPosition === 0) {
+        // First token prediction favors function
+        newTokens = ["function", "const", "let", "class", "var"];
+        newProbs = [0.65, 0.20, 0.10, 0.03, 0.02];
+      } else if (contextPosition === 1) {
+        // Second token favors setup
+        newTokens = ["setup", "init", "draw", "create", "main"];
+        newProbs = [0.70, 0.15, 0.08, 0.05, 0.02];
+      } else if (contextPosition >= 2 && contextPosition <= 3) {
+        // Inside function definition
+        newTokens = ["createCanvas", "background", "noStroke", "fill", "stroke"];
+        newProbs = [0.50, 0.30, 0.10, 0.07, 0.03];
+      } else if (contextPosition === 4) {
+        // Empty line
+        newTokens = ["function", "//", "let", "const", "/*"];
+        newProbs = [0.60, 0.20, 0.10, 0.07, 0.03];
+      } else if (contextPosition === 5) {
+        // Second function
+        newTokens = ["draw", "update", "render", "animate", "display"];
+        newProbs = [0.75, 0.15, 0.05, 0.03, 0.02];
+      } else if (contextPosition >= 6 && contextPosition <= 8) {
+        // Inside draw function
+        newTokens = ["drawParticles", "updatePhysics", "createShape", "colorMode", "stroke"];
+        newProbs = [0.40, 0.30, 0.15, 0.10, 0.05];
+      } else {
+        // Generic JS tokens
+        newTokens = ["for", "if", "let", "const", "return"];
+        newProbs = [0.30, 0.25, 0.20, 0.15, 0.10];
+      }
+      
+      // Update token probability objects
+      for (let i = 0; i < tokenProbabilities.length; i++) {
+        tokenProbabilities[i].text = newTokens[i];
+        tokenProbabilities[i].probability = newProbs[i];
+      }
+      
+      // Make sure bars are regenerated in the right position
+      if (window.panelLayout && window.panelLayout.probSection) {
+        const probSection = window.panelLayout.probSection;
+        const probabilityY = probSection.y + 60;
+        const probSpacing = 30;
+        
+        for (let i = 0; i < tokenProbabilities.length; i++) {
+          tokenProbabilities[i].x = probSection.x + probSection.width * 0.5;
+          tokenProbabilities[i].y = probabilityY + i * probSpacing;
+        }
+      }
+    }
+    
+    function windowResized() {
+      // Resize the canvas to fit the main content area
+      resizeCanvas(windowWidth * 0.6, windowHeight);
+      
+      // Adjust layout based on panel visibility
+      const infoPanel = document.getElementById('infoPanel');
+      const controlPanel = document.getElementById('control-panel');
+      const mainContent = document.getElementById('mainContent');
+      
+      // Calculate appropriate widths based on which panels are visible
+      if (!infoPanel.classList.contains('minimized') && !controlPanel.classList.contains('control-minimized')) {
+        // Both panels visible
+        mainContent.style.left = '20%';
+        mainContent.style.width = '60%';
+      } else if (infoPanel.classList.contains('minimized') && !controlPanel.classList.contains('control-minimized')) {
+        // Only control panel visible
+        mainContent.style.left = '0';
+        mainContent.style.width = '80%';
+      } else if (!infoPanel.classList.contains('minimized') && controlPanel.classList.contains('control-minimized')) {
+        // Only info panel visible
+        mainContent.style.left = '20%';
+        mainContent.style.width = '80%';
+      } else {
+        // Both panels hidden
+        mainContent.style.left = '0';
+        mainContent.style.width = '100%';
+      }
+      
+      // Reset animation from scratch since all positions need to be recalculated
+      resetAnimation();
+    }
+    
+    function updateInfoPanel() {
+      const phaseNames = [
+        "Initialization",
+        "Tokenization & Embedding",
+        "Layer Processing",
+        "Attention Mechanism",
+        "Hidden Representations",
+        "Output Projection",
+        "Autoregressive Generation"
+      ];
+      
+      document.getElementById('phaseName').textContent = `Phase: ${phaseNames[phase]}`;
+      document.getElementById('phaseDescription').textContent = phaseDescriptions[phase];
+      
+      // Update component info based on phase
+      let componentInfo = '';
+      
+      switch(phase) {
+        case 0:
+          componentInfo = `<div class="component-info">
+            <div class="info-title">Model Architecture</div>
+            <p>The LLM architecture consists of multiple transformer layers that process tokens sequentially. Each layer contains attention mechanisms and feed-forward networks.</p>
+          </div>`;
+          break;
+        case 1:
+          componentInfo = `<div class="component-info">
+            <div class="info-title">Tokenization & Embedding</div>
+            <p>${advancedMode ? advancedExplanations.token : componentExplanations.token}</p>
+            <p>${advancedMode ? advancedExplanations.embedding : componentExplanations.embedding}</p>
+            <p>${advancedMode ? advancedExplanations.positionalEncoding : componentExplanations.positionalEncoding}</p>
+          </div>`;
+          break;
+        case 2:
+          componentInfo = `<div class="component-info">
+            <div class="info-title">Transformer Layers</div>
+            <p>${advancedMode ? advancedExplanations.layerOverview : componentExplanations.layerOverview}</p>
+            <p>${advancedMode ? advancedExplanations.normalization : componentExplanations.normalization}</p>
+            <p>${advancedMode ? advancedExplanations.residual : componentExplanations.residual}</p>
+          </div>`;
+          break;
+        case 3:
+          componentInfo = `<div class="component-info">
+            <div class="info-title">Self-Attention Mechanism</div>
+            <p>${advancedMode ? advancedExplanations.attention : componentExplanations.attention}</p>
+            ${showAttentionMaps ? "<p>Examine the attention matrix visualization to see how tokens relate to each other.</p>" : "<p>Enable the attention map visualization to see detailed patterns.</p>"}
+          </div>`;
+          break;
+        case 4:
+          componentInfo = `<div class="component-info">
+            <div class="info-title">Final Hidden Representations</div>
+            <p>After processing through all transformer layers, each token has a rich contextual representation in a high-dimensional vector space.</p>
+            <p>These hidden states capture semantic relationships, syntactic structure, and task-specific features needed for next-token prediction.</p>
+            ${advancedMode ? "<p>Each hidden state vector is of dimension 4096, containing distributed representations of learned features.</p>" : ""}
+          </div>`;
+          break;
+        case 5:
+          componentInfo = `<div class="component-info">
+            <div class="info-title">Output Projection</div>
+            <p>The final hidden vectors are transformed back into vocabulary space through a linear projection.</p>
+            <p>A softmax function converts the raw logits into a probability distribution over all ${vocabSize.toLocaleString()} tokens in the vocabulary.</p>
+            ${advancedMode ? "<p>This process essentially computes the similarity between the final hidden state and each token's embedding, with the highest similarity tokens receiving the highest probability.</p>" : ""}
+            <p>Notice that probabilities sum to 1.0 across all possible next tokens.</p>
+          </div>`;
+          break;
+        case 6:
+          componentInfo = `<div class="component-info">
+            <div class="info-title">Autoregressive Generation</div>
+            <p>The model generates one token at a time, with each new token becoming part of the context for predicting the next token.</p>
+            <p>Note how generated tokens feed back into the model, creating a loop that allows for coherent, context-aware generation.</p>
+            ${advancedMode ? "<p>During sampling, temperature and other decoding strategies can be applied to control creativity vs. determinism in the output.</p>" : ""}
+          </div>`;
+          break;
+      }
+      
+      document.getElementById('componentInfo').innerHTML = componentInfo;
+    }
+    
+    function setupEventListeners() {
+      // Play/Pause button
+      document.getElementById('playPauseBtn').addEventListener('click', function() {
+        isPaused = !isPaused;
+        this.innerHTML = isPaused ? "▶️ Play" : "⏸️ Pause";
+      });
+      
+      // Restart button
+      document.getElementById('restartBtn').addEventListener('click', resetAnimation);
+      
+      // Previous phase button
+      document.getElementById('prevPhaseBtn').addEventListener('click', function() {
+        if (phase > 0) {
+          phase--;
+          phaseTime = 0.5;
+          manualPhaseSelection = true;
+          updateInfoPanel();
+          updatePhaseButtons();
+        }
+      });
+      
+      // Next phase button
+      document.getElementById('nextPhaseBtn').addEventListener('click', function() {
+        if (phase < 6) {
+          phase++;
+          phaseTime = 0;
+          manualPhaseSelection = true;
+          updateInfoPanel();
+          updatePhaseButtons();
+        }
+      });
+      
+      // Phase selector buttons
+      const phaseButtons = document.querySelectorAll('.phase-btn');
+      phaseButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+          const newPhase = parseInt(this.getAttribute('data-phase'));
+          if (newPhase >= 0 && newPhase <= 6) {
+            phase = newPhase;
+            phaseTime = 0.5;
+            manualPhaseSelection = true;
+            updateInfoPanel();
+            updatePhaseButtons();
+          }
+        });
+      });
+      
+      // Speed slider
+      document.getElementById('speedSlider').addEventListener('input', function() {
+        animationSpeed = parseFloat(this.value);
+      });
+      
+      // Toggle attention map button
+      document.getElementById('toggleAttentionBtn').addEventListener('click', function() {
+        showAttentionMaps = !showAttentionMaps;
+        this.innerHTML = showAttentionMaps ? "Hide Attention Maps" : "Show Attention Maps";
+        document.getElementById('attentionVisualization').style.display = showAttentionMaps ? 'block' : 'none';
+        
+        // Create attention map cycling buttons if they don't exist
+        if (showAttentionMaps && !document.getElementById('prevLayerBtn')) {
+          const attentionDiv = document.getElementById('attentionVisualization');
+          
+          const controlsDiv = document.createElement('div');
+          controlsDiv.style.display = 'flex';
+          controlsDiv.style.justifyContent = 'space-between';
+          controlsDiv.style.marginTop = '10px';
+          
+          const prevLayerBtn = document.createElement('button');
+          prevLayerBtn.id = 'prevLayerBtn';
+          prevLayerBtn.innerHTML = '◀ Layer';
+          prevLayerBtn.style.fontSize = '12px';
+          prevLayerBtn.style.padding = '5px';
+          prevLayerBtn.addEventListener('click', function() {
+            attentionMapLayer = (attentionMapLayer - 1 + attentionMaps.length) % attentionMaps.length;
+          });
+          
+          const prevHeadBtn = document.createElement('button');
+          prevHeadBtn.id = 'prevHeadBtn';
+          prevHeadBtn.innerHTML = '◀ Head';
+          prevHeadBtn.style.fontSize = '12px';
+          prevHeadBtn.style.padding = '5px';
+          prevHeadBtn.addEventListener('click', function() {
+            attentionMapHead = (attentionMapHead - 1 + attentionMaps[attentionMapLayer].length) % attentionMaps[attentionMapLayer].length;
+          });
+          
+          const nextHeadBtn = document.createElement('button');
+          nextHeadBtn.id = 'nextHeadBtn';
+          nextHeadBtn.innerHTML = 'Head ▶';
+          nextHeadBtn.style.fontSize = '12px';
+          nextHeadBtn.style.padding = '5px';
+          nextHeadBtn.addEventListener('click', function() {
+            attentionMapHead = (attentionMapHead + 1) % attentionMaps[attentionMapLayer].length;
+          });
+          
+          const nextLayerBtn = document.createElement('button');
+          nextLayerBtn.id = 'nextLayerBtn';
+          nextLayerBtn.innerHTML = 'Layer ▶';
+          nextLayerBtn.style.fontSize = '12px';
+          nextLayerBtn.style.padding = '5px';
+          nextLayerBtn.addEventListener('click', function() {
+            attentionMapLayer = (attentionMapLayer + 1) % attentionMaps.length;
+          });
+          
+          controlsDiv.appendChild(prevLayerBtn);
+          controlsDiv.appendChild(prevHeadBtn);
+          controlsDiv.appendChild(nextHeadBtn);
+          controlsDiv.appendChild(nextLayerBtn);
+          
+          attentionDiv.appendChild(controlsDiv);
+        }
+      });
+      
+      // Toggle advanced mode button
+      document.getElementById('toggleDetailBtn').addEventListener('click', function() {
+        advancedMode = !advancedMode;
+        this.innerHTML = advancedMode ? "Basic Mode" : "Advanced Mode";
+        updateInfoPanel();
+      });
+      
+      // Layer detail panel close button
+      document.querySelector('.detail-close').addEventListener('click', function() {
+        document.getElementById('layerDetailPanel').style.display = 'none';
+      });
+      
+      // Toggle info panel button
+      document.getElementById('toggleInfoPanel').addEventListener('click', function() {
+        const infoPanel = document.getElementById('infoPanel');
+        infoPanel.classList.toggle('minimized');
+        this.innerHTML = infoPanel.classList.contains('minimized') ? '≫' : '≡';
+        
+        // Adjust main content area
+        const mainContent = document.getElementById('mainContent');
+        if (infoPanel.classList.contains('minimized')) {
+          mainContent.style.left = '0';
+          mainContent.style.width = document.getElementById('control-panel').classList.contains('control-minimized') ? '100%' : '80%';
+        } else {
+          mainContent.style.left = '20%';
+          mainContent.style.width = '60%';
+        }
+        
+        // Recalculate layout
+        setTimeout(setupLayout, 300);
+      });
+      
+      // Toggle control panel button
+      document.getElementById('toggleControlPanel').addEventListener('click', function() {
+        const controlPanel = document.getElementById('control-panel');
+        controlPanel.classList.toggle('control-minimized');
+        this.innerHTML = controlPanel.classList.contains('control-minimized') ? '≪' : '≡';
+        
+        // Adjust main content area
+        const mainContent = document.getElementById('mainContent');
+        if (controlPanel.classList.contains('control-minimized')) {
+          mainContent.style.width = document.getElementById('infoPanel').classList.contains('minimized') ? '100%' : '80%';
+        } else {
+          mainContent.style.width = '60%';
+        }
+        
+        // Recalculate layout
+        setTimeout(setupLayout, 300);
+      });
+      
+      // Mouse click on elements
+      canvas.addEventListener('click', function() {
+        if (hoveredElement && hoveredElement.type === 'layer') {
+          // Show layer detail panel
+          const detailPanel = document.getElementById('layerDetailPanel');
+          detailPanel.style.display = 'block';
+          detailPanel.style.left = mouseX + 'px';
+          detailPanel.style.top = mouseY + 'px';
+          
+          // Populate with layer details
+          const layer = layers[hoveredElement.index];
+          let content = `
+            <h3>Layer ${layer.index + 1} Details</h3>
+            <p><strong>Components:</strong></p>
+            <ul>
+              <li><strong>Normalization:</strong> Stabilizes inputs across features</li>
+              <li><strong>Multi-Head Attention:</strong> ${numHeads} attention heads</li>
+              <li><strong>Feed-Forward Network:</strong> Expands to ${ffnDim} dimensions</li>
+            </ul>
+            <p><strong>Processing Flow:</strong> LayerNorm → Self-Attention → Add & LayerNorm → Feed-Forward → Add</p>
+          `;
+          
+          if (advancedMode) {
+            content += `
+              <p><strong>Technical Details:</strong></p>
+              <ul>
+                <li>Attention: Q, K, V projections with dimension ${hiddenDim / numHeads} per head</li>
+                <li>FFN: Two linear transformations with GELU activation</li>
+                <li>Residual connections: x + Sublayer(x)</li>
+                <li>LayerNorm: γ(x-μ)/√(σ²+ε) + β</li>
+              </ul>
+            `;
+          }
+          
+          document.getElementById('layerDetailContent').innerHTML = content;
+        }
+      });
+      
+      // Window resize handler
+      window.addEventListener('resize', windowResized);
+      
+      // Initial phase button highlighting
+      updatePhaseButtons();
+    }
+    
+    function updatePhaseButtons() {
+      // Update phase button highlighting
+      document.querySelectorAll('.phase-btn').forEach(btn => {
+        const btnPhase = parseInt(btn.getAttribute('data-phase'));
+        if (btnPhase === phase) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+    }
+    
+    function resetAnimation() {
+      // Reset state
+      phase = 0;
+      phaseTime = 0;
+      tokenIndex = 0;
+      generationIndex = 0;
+      
+      // Clear arrays
+      inputTokens = [];
+      embeddings = [];
+      layers = [];
+      attentionPatterns = [];
+      outputTokens = [];
+      flowParticles = [];
+      tokenProbabilities = [];
+      
+      STAGE_WIDTH = windowWidth * 0.6;
+      STAGE_HEIGHT = windowHeight;
+      resizeCanvas(STAGE_WIDTH, STAGE_HEIGHT);
+      
+      // Adjust layout based on panel visibility
+      const infoPanel = document.getElementById('infoPanel');
+      const controlPanel = document.getElementById('control-panel');
+      const mainContent = document.getElementById('mainContent');
+      
+      // Position the mainContent div
+      mainContent.style.left = infoPanel.classList.contains('minimized') ? '0' : '20%';
+      mainContent.style.width = (infoPanel.classList.contains('minimized') && controlPanel.classList.contains('control-minimized')) ? '100%' : 
+                               (infoPanel.classList.contains('minimized') || controlPanel.classList.contains('control-minimized')) ? '80%' : '60%';
+      
+      setupLayout();
+    }
+  </script>
+</body>
+</html>
